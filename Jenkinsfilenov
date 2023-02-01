@@ -1,13 +1,15 @@
 node{
-    
+try
+{
+notifyBuild('STARTED')
+
 echo "The job name is : ${env.JOB_NAME}" 
 echo "The job name is : ${env.BUILD_NUMBER}" 
-echo "The job name is : ${env.JOB_URL}"    
-    
+echo "The job name is : ${env.JOB_URL}" 
+
 properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '5', daysToKeepStr: '', numToKeepStr: '5')), [$class: 'JobLocalConfiguration', changeReasonComment: ''], pipelineTriggers([pollSCM('* * * * *')])])
 
-def mavenHome = tool name : 'maven3.8.6'  
-
+def mavenHome = tool name : 'maven3.8.6'
 stage('checkOutCode'){
 git branch: 'development', credentialsId: 'e35e668b-92eb-4d77-94ab-29c301a2dbf6', url: 'https://github.com/indhusundar/maven-web-application.git'
 }
@@ -30,5 +32,42 @@ sh "scp -o StrictHostKeyChecking=no target/maven-web-application.war ec2-user@17
 }
 }
 */
+}
+catch(e)
+{
+currentBuild.result="FAILURE"
+}
+finally
+{
+notifyBuild(currentBuild.result)
+}
+}
+}
+// end of the node
 
+
+def notifyBuild(String buildStatus = 'STARTED') {
+  // build status of null means successful
+  buildStatus =  buildStatus ?: 'SUCCESSFUL'
+
+  // Default values
+  def colorName = 'RED'
+  def colorCode = '#FF0000'
+  def subject = "${buildStatus}: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'"
+  def summary = "${subject} (${env.BUILD_URL})"
+
+  // Override default values based on build status
+  if (buildStatus == 'STARTED') {
+    color = 'YELLOW'
+    colorCode = '#FFFF00'
+  } else if (buildStatus == 'SUCCESSFUL') {
+    color = 'GREEN'
+    colorCode = '#00FF00'
+  } else {
+    color = 'RED'
+    colorCode = '#FF0000'
+  }
+
+  // Send notifications
+  slackSend (color: colorCode, message: summary,channel: '#citibank-team')
 }
