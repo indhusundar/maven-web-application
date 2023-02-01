@@ -42,7 +42,6 @@ finally
 notifyBuild(currentBuild.result)
 }
 }
-}
 // end of the node
 
 
